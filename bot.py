@@ -1,7 +1,6 @@
 import os
 import logging
 import asyncio
-
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -14,11 +13,9 @@ if not TOKEN:
 
 app = Flask(__name__)
 
-# Создаём Telegram Application и инициализируем
 telegram_app = ApplicationBuilder().token(TOKEN).build()
-telegram_app.initialize()  # Очень важно!
+telegram_app.initialize()
 
-# Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я твой бот-помощник 👋")
 
@@ -30,8 +27,9 @@ def webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
 
     loop = asyncio.get_event_loop()
-    # Запускаем обработку в фоне, не блокируя Flask
-    loop.create_task(telegram_app.process_update(update))
+    
+    # Безопасный запуск корутины из синхронного контекста
+    asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), loop)
 
     return "OK"
 
