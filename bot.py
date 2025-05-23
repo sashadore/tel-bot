@@ -21,15 +21,23 @@ telegram_app.add_handler(CommandHandler("start", start))
 def index():
     return 'Бот работает!'
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    if request.method == "POST":
-        data = request.get_json(force=True)
-        update = Update.de_json(data, telegram_app.bot)
-        asyncio.create_task(telegram_app.process_update(update))
+    logging.info("Получен запрос от Telegram")
+    try:
+        update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+        logging.info(f"Обновление от пользователя: {update.message.from_user.id}")
+        asyncio.run(telegram_app.process_update(update))
+        logging.info("Обработка обновления успешна")
         return "OK"
-    else:
-        abort(400)
+    except Exception as e:
+        logging.exception("Ошибка при обработке вебхука")
+        return "Internal Server Error", 500
+
 
 if __name__ == "__main__":
     app.run(port=5000)
