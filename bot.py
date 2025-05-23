@@ -31,13 +31,17 @@ def webhook():
     try:
         update = Update.de_json(request.get_json(force=True), telegram_app.bot)
         logging.info(f"Обновление от пользователя: {update.message.from_user.id}")
-        asyncio.run(telegram_app.process_update(update))
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(telegram_app.process_update(update))
+        loop.close()
+
         logging.info("Обработка обновления успешна")
         return "OK"
     except Exception as e:
         logging.exception("Ошибка при обработке вебхука")
         return "Internal Server Error", 500
-
 
 if __name__ == "__main__":
     app.run(port=5000)
