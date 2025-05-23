@@ -1,29 +1,31 @@
-import os
 from flask import Flask, request
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import os
 
+# Проверка токена
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}{WEBHOOK_PATH}"
+if not TOKEN:
+    raise ValueError("TELEGRAM_TOKEN is not set. Please check your environment variables.")
 
-bot = Bot(token=TOKEN)
 app = Flask(__name__)
+
+# Создаём Telegram Application
+telegram_app = ApplicationBuilder().token(TOKEN).build()
 
 # Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Я бот-помощник с webhook.")
+    await update.message.reply_text("Привет! Я твой бот-помощник 👋")
 
-# Создаем приложение и регистрируем обработчик
-application = ApplicationBuilder().token(TOKEN).build()
-application.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("start", start))
 
-@app.route(WEBHOOK_PATH, methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    application.update_queue.put(update)
-    return "OK"
+# Обработка входящих запросов от Telegram
+@app.post("/")
+async def webhook():
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    await telegram_app.process_update(update)
+    return "OK", 200
 
+# Старт Flask (локально или на Render)
 if __name__ == "__main__":
-    bot.set_webhook(WEBHOOK_URL)
-    app.run(host="0.0.0.0", port=5000)
+    app.run(port=5000)
