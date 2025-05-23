@@ -20,11 +20,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 telegram_app.add_handler(CommandHandler("start", start))
 
 # Обработка входящих запросов от Telegram
-@app.post("/")
-async def webhook():
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    await telegram_app.process_update(update)
-    return "OK", 200
+    asyncio.run(telegram_app.process_update(update))
+    return "OK"
+
 
 # Старт Flask (локально или на Render)
 if __name__ == "__main__":
