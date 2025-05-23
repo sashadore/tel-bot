@@ -32,7 +32,11 @@ def webhook():
     try:
         data = request.get_json(force=True)
         update = Update.de_json(data, telegram_app.bot)
-        telegram_app.create_task(telegram_app.process_update(update))
+
+        # Запускаем обработку в event loop
+        import asyncio
+        asyncio.run(telegram_app.process_update(update))
+
     except Exception as e:
         logger.exception("Ошибка при обработке update")
 
