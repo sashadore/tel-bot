@@ -45,4 +45,17 @@ def webhook():
     try:
         data = request.get_json(force=True)
         update = Update.de_json(data, telegram_app.bot)
-        asyncio.run(
+        asyncio.run(telegram_app.process_update(update))
+    except Exception as e:
+        logger.exception("Ошибка при обработке update")
+
+    return "OK"
+
+# Проверка, что бот жив
+@app.route("/", methods=["GET"])
+def home():
+    return "Bot is running!"
+
+# Локальный запуск (не используется на Render)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
