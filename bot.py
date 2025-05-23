@@ -4,6 +4,11 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import os
 import asyncio
 
+async def init_telegram_app():
+    await telegram_app.initialize()
+    await telegram_app.start()
+
+
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOKEN:
     raise ValueError("TELEGRAM_TOKEN is not set. Please check your environment variables.")
@@ -44,4 +49,6 @@ def webhook():
         return "Internal Server Error", 500
 
 if __name__ == "__main__":
+    asyncio.run(init_telegram_app())
     app.run(port=5000)
+
