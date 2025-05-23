@@ -1,3 +1,4 @@
+flask[async]
 Flask>=2.2  # нужно для async support
 gunicorn
 python-telegram-bot==20.3
