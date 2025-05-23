@@ -2,6 +2,8 @@ from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import os
+import asyncio  # <-- вот это добавь
+
 
 # Проверка токена
 TOKEN = os.getenv("TELEGRAM_TOKEN")
