@@ -1,17 +1,15 @@
-from flask import Flask, request, abort
+from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import os
 import asyncio
+import logging
 
-async def init_telegram_app():
-    await telegram_app.initialize()
-    await telegram_app.start()
-
+logging.basicConfig(level=logging.INFO)
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOKEN:
-    raise ValueError("TELEGRAM_TOKEN is not set. Please check your environment variables.")
+    raise RuntimeError("TELEGRAM_TOKEN is not set")
 
 app = Flask(__name__)
 
@@ -22,33 +20,29 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 telegram_app.add_handler(CommandHandler("start", start))
 
-@app.route('/')
-def index():
-    return 'Бот работает!'
+# Инициализация приложения — вызывается один раз при старте сервера
+async def initialize_bot():
+    await telegram_app.initialize()
+    await telegram_app.start()
+    logging.info("Telegram bot initialized")
 
-import logging
-
-logging.basicConfig(level=logging.INFO)
+# Храним event loop и инициализируем заранее
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+loop.run_until_complete(initialize_bot())
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    logging.info("Получен запрос от Telegram")
     try:
+        # Telegram присылает JSON обновление
         update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        logging.info(f"Обновление от пользователя: {update.message.from_user.id}")
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # Запускаем обработку обновления в уже инициализированном приложении
         loop.run_until_complete(telegram_app.process_update(update))
-        loop.close()
-
-        logging.info("Обработка обновления успешна")
         return "OK"
     except Exception as e:
         logging.exception("Ошибка при обработке вебхука")
         return "Internal Server Error", 500
 
 if __name__ == "__main__":
-    asyncio.run(init_telegram_app())
-    app.run(port=5000)
-
+    # Запускаем Flask на порту 5000
+    app.run(host="0.0.0.0", port=5000)
