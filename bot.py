@@ -17,7 +17,6 @@ if not TOKEN:
 
 app = Flask(__name__)
 
-# Создаём Telegram Application
 telegram_app = ApplicationBuilder().token(TOKEN).build()
 
 # Обработчик команды /start
@@ -27,14 +26,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 telegram_app.add_handler(CommandHandler("start", start))
 
 @app.route(f"/{TOKEN}", methods=["POST"])
-async def webhook():
+def webhook():
     logger.info("Получен запрос от Telegram")
+
     try:
-        data = await request.get_json()
+        data = request.get_json(force=True)
         update = Update.de_json(data, telegram_app.bot)
-        await telegram_app.process_update(update)
+        telegram_app.create_task(telegram_app.process_update(update))
     except Exception as e:
         logger.exception("Ошибка при обработке update")
+
     return "OK"
 
 @app.route("/", methods=["GET"])
@@ -42,5 +43,5 @@ def home():
     return "Bot is running!"
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("bot:app", host="0.0.0.0", port=int(os.getenv("PORT", 5000)), reload=True)
+    import uvicorn  # Если ты используешь gunicorn на Render, это можно не запускать локально
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
