@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import (
@@ -8,15 +9,19 @@ from telegram.ext import (
     ContextTypes,
 )
 
+# Логирование
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("bot")
 
+# Получаем токен из переменной окружения
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOKEN:
     raise ValueError("TELEGRAM_TOKEN is not set")
 
+# Создаём Flask-приложение
 app = Flask(__name__)
 
+# Создаём Telegram Application
 telegram_app = ApplicationBuilder().token(TOKEN).build()
 
 # Обработчик команды /start
@@ -25,6 +30,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 telegram_app.add_handler(CommandHandler("start", start))
 
+# Инициализация Telegram Application (один раз при старте)
+async def init_bot():
+    await telegram_app.initialize()
+    await telegram_app.start()
+
+asyncio.run(init_bot())
+
+# Обработка запросов от Telegram через вебхук
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     logger.info("Получен запрос от Telegram")
@@ -32,20 +45,4 @@ def webhook():
     try:
         data = request.get_json(force=True)
         update = Update.de_json(data, telegram_app.bot)
-
-        # Запускаем обработку в event loop
-        import asyncio
-        asyncio.run(telegram_app.process_update(update))
-
-    except Exception as e:
-        logger.exception("Ошибка при обработке update")
-
-    return "OK"
-
-@app.route("/", methods=["GET"])
-def home():
-    return "Bot is running!"
-
-if __name__ == "__main__":
-    import uvicorn  # Если ты используешь gunicorn на Render, это можно не запускать локально
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
+        asyncio.run(
